@@ -29,13 +29,14 @@ wss.on('connection', (connection) => {
             data = JSON.parse(message);
         } catch (e) {
             console.log('Invalid JSON');
-            data = {};
+            sendTo(connection, { type: 'error', message: 'Invalid JSON format' });
+            return;
         }
 
         // Process the message
         switch (data.type) {
             case 'login':
-                console.log('User logged', data.name);
+                console.log('User logged:', data.name);
                 if (users[data.name]) {
                     sendTo(connection, { type: 'login', success: false });
                 } else {
@@ -51,6 +52,8 @@ wss.on('connection', (connection) => {
                 if (connOffer) {
                     connection.otherName = data.name;
                     sendTo(connOffer, { type: 'offer', offer: data.offer, name: connection.name });
+                } else {
+                    sendTo(connection, { type: 'error', message: `User ${data.name} not found` });
                 }
                 break;
 
@@ -60,6 +63,8 @@ wss.on('connection', (connection) => {
                 if (connAnswer) {
                     connection.otherName = data.name;
                     sendTo(connAnswer, { type: 'answer', answer: data.answer });
+                } else {
+                    sendTo(connection, { type: 'error', message: `User ${data.name} not found` });
                 }
                 break;
 
@@ -68,6 +73,8 @@ wss.on('connection', (connection) => {
                 const connCandidate = users[data.name];
                 if (connCandidate) {
                     sendTo(connCandidate, { type: 'candidate', candidate: data.candidate });
+                } else {
+                    sendTo(connection, { type: 'error', message: `User ${data.name} not found` });
                 }
                 break;
 
@@ -100,16 +107,20 @@ wss.on('connection', (connection) => {
         }
     });
 
-    connection.send('Hello world');
+    connection.send(JSON.stringify({ message: 'Connection established' }));
 });
 
 // Send a JSON message to the WebSocket client
 function sendTo(connection, message) {
-    connection.send(JSON.stringify(message));
+    try {
+        connection.send(JSON.stringify(message));
+    } catch (e) {
+        console.error('Error sending message:', e);
+    }
 }
 
 // Start the server
-const PORT = 9090;
+const PORT = process.env.PORT || 9090;
 server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
