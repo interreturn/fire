@@ -34,16 +34,19 @@
       <div id = "callPage" class = "call-page">
 		
          <div class = "row"> 
-			
-            <div class = "col-md-6 text-right"> 
+            <div class = "col-md-6 text-left"> 
                Local audio: <audio id = "localAudio" 
-               controls autoplay></audio> 
+                  controls autoplay></audio> 
             </div>
-				
+
             <div class = "col-md-6 text-left"> 
                Remote audio: <audio id = "remoteAudio" 
                   controls autoplay></audio> 
             </div> 
+
+            <div class = "col-md-6 text-center"> 
+               <h2>Call to: <span id = "remoteUsername"></span></h2> 
+            </div>
 				
          </div> 
 			
@@ -53,6 +56,20 @@
                   type = "text" placeholder = "username to call" /> 
                <button id = "callBtn" class = "btn-success btn">Call</button> 
                <button id = "hangUpBtn" class = "btn-danger btn">Hang Up</button> 
+            </div> 
+         </div>
+
+         <div class = "row text-center"> 
+            <div class = "col-md-12"> 
+               <h3>Active Users</h3>
+               <ul id = "activeUsersList" class = "list-group"></ul>
+            </div> 
+         </div>
+
+         <div class = "row text-center"> 
+            <div class = "col-md-12"> 
+               <h3>All Users</h3>
+               <ul id = "allUsersList" class = "list-group"></ul>
             </div> 
          </div>
 			
