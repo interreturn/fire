@@ -2,7 +2,7 @@ var name;
 var connectedUser;
 
 // Connecting to our signaling server
-var conn = new WebSocket('ws://localhost:9090');
+var conn = new WebSocket('wss://fire-szr5.onrender.com');
 
 conn.onopen = function () {
   console.log("Connected to the signaling server");
@@ -224,7 +224,7 @@ function updateActiveUsersList(users) {
 
 // Fetch user data from the server
 function fetchUserData() {
-  fetch('http://localhost:9090/getusers')
+  fetch('https://fire-szr5.onrender.com/getusers')
     .then(response => response.json())
     .then(users => {
       updateAllUsersList(users);
