@@ -96,9 +96,16 @@ function handleLogin(success) {
       // Displaying local audio stream on the page
       localAudio.srcObject = stream;
 
-      // Using Google public stun server
+      // Using Google public stun server and a TURN server
       var configuration = {
-        iceServers: [{ urls: "stun:stun2.1.google.com:19302" }]
+        iceServers: [
+          { urls: "stun:stun2.1.google.com:19302" },
+          {
+            urls: "turn:your.turn.server:3478",
+            username: "your_username",
+            credential: "your_password"
+          }
+        ]
       };
 
       yourConn = new RTCPeerConnection(configuration);
@@ -108,12 +115,14 @@ function handleLogin(success) {
 
       // When a remote user adds stream to the peer connection, we display it
       yourConn.onaddstream = function (e) {
+        console.log("Remote stream added");
         remoteAudio.srcObject = e.stream;
       };
 
       // Setup ice handling
       yourConn.onicecandidate = function (event) {
         if (event.candidate) {
+          console.log("ICE candidate found:", event.candidate);
           send({
             type: "candidate",
             candidate: event.candidate
@@ -122,7 +131,7 @@ function handleLogin(success) {
       };
 
     }).catch(function (error) {
-      console.log(error);
+      console.log("Error accessing media devices:", error);
     });
   }
 }
@@ -141,6 +150,7 @@ callBtn.addEventListener("click", function () {
 
     // Create an offer
     yourConn.createOffer().then(function (offer) {
+      console.log("Offer created:", offer);
       send({
         type: "offer",
         offer: offer
@@ -161,6 +171,7 @@ function handleOffer(offer, name) {
   }).then(function (answer) {
     return yourConn.setLocalDescription(answer);
   }).then(function () {
+    console.log("Answer created:", yourConn.localDescription);
     send({
       type: "answer",
       answer: yourConn.localDescription
@@ -172,11 +183,13 @@ function handleOffer(offer, name) {
 
 // When we got an answer from a remote user
 function handleAnswer(answer) {
+  console.log("Answer received:", answer);
   yourConn.setRemoteDescription(new RTCSessionDescription(answer));
 }
 
 // When we got an ice candidate from a remote user
 function handleCandidate(candidate) {
+  console.log("ICE candidate received:", candidate);
   yourConn.addIceCandidate(new RTCIceCandidate(candidate));
 }
 
