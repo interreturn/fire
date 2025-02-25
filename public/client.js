@@ -1,7 +1,4 @@
-var name;
 var connectedUser;
-
-// Connecting to our signaling server
 var conn = new WebSocket('wss://fire-szr5.onrender.com');
 
 conn.onopen = function () {
@@ -9,7 +6,6 @@ conn.onopen = function () {
   fetchUserData();
 };
 
-// When we got a message from a signaling server
 conn.onmessage = function (msg) {
   console.log("Got message", msg.data);
   var data = JSON.parse(msg.data);
@@ -42,7 +38,7 @@ conn.onerror = function (err) {
   console.log("Got error", err);
 };
 
-// Alias for sending JSON encoded messages
+// Send JSON messages
 function send(message) {
   if (connectedUser) {
     message.name = connectedUser;
@@ -50,7 +46,7 @@ function send(message) {
   conn.send(JSON.stringify(message));
 }
 
-// UI selectors block
+// UI elements
 var loginPage = document.querySelector('#loginPage');
 var usernameInput = document.querySelector('#usernameInput');
 var loginBtn = document.querySelector('#loginBtn');
@@ -70,9 +66,9 @@ var stream;
 
 callPage.style.display = "none";
 
-// Login when the user clicks the button
-loginBtn.addEventListener("click", function (event) {
-  name = usernameInput.value;
+// Login user
+loginBtn.addEventListener("click", function () {
+  let name = usernameInput.value;
 
   if (name.length > 0) {
     send({
@@ -83,60 +79,69 @@ loginBtn.addEventListener("click", function (event) {
 });
 
 function handleLogin(success) {
-  if (success === false) {
+  if (!success) {
     alert("Ooops...try a different username");
   } else {
     loginPage.style.display = "none";
     callPage.style.display = "block";
 
-    // Starting a peer connection
-    navigator.mediaDevices.getUserMedia({ video: false, audio: true }).then(function (myStream) {
-      stream = myStream;
+    // Request microphone access
+    navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+      .then(function (myStream) {
+        stream = myStream;
 
-      // Displaying local audio stream on the page
-      localAudio.srcObject = stream;
+        // Ensure audio is enabled
+        stream.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
 
-      // Using Google public stun server and a TURN server
-      var configuration = {
-        iceServers: [
-          { urls: "stun:stun2.1.google.com:19302" },
-          {
-            urls: "turn:your.turn.server:3478",
-            username: "your_username",
-            credential: "your_password"
+        localAudio.srcObject = stream;
+
+        // Configure STUN/TURN servers
+        var configuration = {
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            {
+              urls: "turn:your.turn.server:3478",
+              username: "your_username",
+              credential: "your_password"
+            }
+          ]
+        };
+
+        yourConn = new RTCPeerConnection(configuration);
+
+        // Add audio tracks to connection
+        stream.getTracks().forEach(track => {
+          yourConn.addTrack(track, stream);
+        });
+
+        // Listen for remote stream
+        yourConn.ontrack = function (event) {
+          console.log("Remote track added:", event.streams);
+          remoteAudio.srcObject = event.streams[0];
+        };
+
+        // ICE candidate handling
+        yourConn.onicecandidate = function (event) {
+          if (event.candidate) {
+            console.log("Sending ICE Candidate:", event.candidate);
+            send({
+              type: "candidate",
+              candidate: event.candidate
+            });
+          } else {
+            console.log("No more ICE candidates.");
           }
-        ]
-      };
-
-      yourConn = new RTCPeerConnection(configuration);
-
-      // Setup stream listening
-      yourConn.addStream(stream);
-
-      // When a remote user adds stream to the peer connection, we display it
-      yourConn.onaddstream = function (e) {
-        console.log("Remote stream added");
-        remoteAudio.srcObject = e.stream;
-      };
-
-      // Setup ice handling
-      yourConn.onicecandidate = function (event) {
-        if (event.candidate) {
-          console.log("ICE candidate found:", event.candidate);
-          send({
-            type: "candidate",
-            candidate: event.candidate
-          });
-        }
-      };
-
-    }).catch(function (error) {
-      console.log("Error accessing media devices:", error);
-    });
+        };
+      })
+      .catch(function (error) {
+        console.log("Error accessing media devices:", error);
+      });
   }
 }
 
-// Initiating a call
+// Make a call
 callBtn.addEventListener("click", function () {
   if (!yourConn) {
     alert("Connection not initialized yet.");
@@ -148,49 +153,58 @@ callBtn.addEventListener("click", function () {
   if (callToUsername.length > 0) {
     connectedUser = callToUsername;
 
-    // Create an offer
-    yourConn.createOffer().then(function (offer) {
-      console.log("Offer created:", offer);
-      send({
-        type: "offer",
-        offer: offer
+    yourConn.createOffer()
+      .then(function (offer) {
+        console.log("Offer created:", offer);
+        return yourConn.setLocalDescription(offer);
+      })
+      .then(function () {
+        send({
+          type: "offer",
+          offer: yourConn.localDescription
+        });
+      })
+      .catch(function (error) {
+        console.error("Error when creating an offer:", error);
       });
-
-      yourConn.setLocalDescription(offer);
-    }).catch(function (error) {
-      alert("Error when creating an offer");
-    });
   }
 });
 
-// When somebody sends us an offer
+// Handle offer
 function handleOffer(offer, name) {
   connectedUser = name;
-  yourConn.setRemoteDescription(new RTCSessionDescription(offer)).then(function () {
-    return yourConn.createAnswer();
-  }).then(function (answer) {
-    return yourConn.setLocalDescription(answer);
-  }).then(function () {
-    console.log("Answer created:", yourConn.localDescription);
-    send({
-      type: "answer",
-      answer: yourConn.localDescription
+  yourConn.setRemoteDescription(new RTCSessionDescription(offer))
+    .then(() => {
+      console.log("Remote description set");
+      return yourConn.createAnswer();
+    })
+    .then(answer => {
+      return yourConn.setLocalDescription(answer);
+    })
+    .then(() => {
+      console.log("Answer created:", yourConn.localDescription);
+      send({
+        type: "answer",
+        answer: yourConn.localDescription
+      });
+    })
+    .catch(error => {
+      console.error("Error when handling an offer:", error);
     });
-  }).catch(function (error) {
-    alert("Error when creating an answer");
-  });
 }
 
-// When we got an answer from a remote user
+// Handle answer
 function handleAnswer(answer) {
   console.log("Answer received:", answer);
-  yourConn.setRemoteDescription(new RTCSessionDescription(answer));
+  yourConn.setRemoteDescription(new RTCSessionDescription(answer))
+    .catch(error => console.error("Error setting remote description:", error));
 }
 
-// When we got an ice candidate from a remote user
+// Handle ICE candidate
 function handleCandidate(candidate) {
   console.log("ICE candidate received:", candidate);
-  yourConn.addIceCandidate(new RTCIceCandidate(candidate));
+  yourConn.addIceCandidate(new RTCIceCandidate(candidate))
+    .catch(error => console.error("Error adding ICE candidate:", error));
 }
 
 // Hang up
@@ -202,27 +216,19 @@ hangUpBtn.addEventListener("click", function () {
   handleLeave();
 });
 
+// Handle leave
 function handleLeave() {
   connectedUser = null;
   remoteAudio.srcObject = null;
 
-  yourConn.close();
-  yourConn.onicecandidate = null;
-  yourConn.onaddstream = null;
+  if (yourConn) {
+    yourConn.close();
+    yourConn.onicecandidate = null;
+    yourConn.ontrack = null;
+  }
 }
 
-// Update the list of active users
-function updateActiveUsersList(users) {
-  activeUsersList.innerHTML = "";
-  users.forEach(function (user) {
-    var li = document.createElement("li");
-    li.textContent = user;
-    li.className = "list-group-item";
-    activeUsersList.appendChild(li);
-  });
-}
-
-// Fetch user data from the server
+// Fetch users from server
 function fetchUserData() {
   fetch('https://fire-szr5.onrender.com/getusers')
     .then(response => response.json())
@@ -232,10 +238,21 @@ function fetchUserData() {
     .catch(error => console.error('Error fetching user data:', error));
 }
 
-// Update the list of all users
+// Update active users list
+function updateActiveUsersList(users) {
+  activeUsersList.innerHTML = "";
+  users.forEach(user => {
+    var li = document.createElement("li");
+    li.textContent = user;
+    li.className = "list-group-item";
+    activeUsersList.appendChild(li);
+  });
+}
+
+// Update all users list
 function updateAllUsersList(users) {
   allUsersList.innerHTML = "";
-  users.forEach(function (user) {
+  users.forEach(user => {
     var li = document.createElement("li");
     li.textContent = `${user.name} (${user.email})`;
     li.className = "list-group-item";
