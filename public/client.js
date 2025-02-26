@@ -201,11 +201,26 @@ function handleAnswer(answer) {
 }
 
 // Handle ICE candidate
+// function handleCandidate(candidate) {
+//   console.log("ICE candidate received:", candidate);
+//   yourConn.addIceCandidate(new RTCIceCandidate(candidate))
+//     .catch(error => console.error("Error adding ICE candidate:", error));
+// }
+
 function handleCandidate(candidate) {
-  console.log("ICE candidate received:", candidate);
-  yourConn.addIceCandidate(new RTCIceCandidate(candidate))
-    .catch(error => console.error("Error adding ICE candidate:", error));
+  console.log("Received ICE Candidate:", candidate);
+
+  if (yourConn) {
+    yourConn.addIceCandidate(new RTCIceCandidate(candidate))
+      .then(() => console.log("ICE Candidate added successfully"))
+      .catch(error => console.error("Error adding ICE Candidate:", error));
+  } else {
+    console.warn("RTCPeerConnection not initialized. Candidate not added.");
+  }
 }
+
+
+
 
 // Hang up
 hangUpBtn.addEventListener("click", function () {
