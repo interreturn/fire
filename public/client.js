@@ -183,9 +183,17 @@ function handleAnswer(answer) {
 };
  
 //when we got an ice candidate from a remote user 
+// function handleCandidate(candidate) { 
+//    yourConn.addIceCandidate(new RTCIceCandidate(candidate)); 
+// };
+
 function handleCandidate(candidate) { 
-   yourConn.addIceCandidate(new RTCIceCandidate(candidate)); 
+    console.log("Received ICE Candidate:", candidate);
+    yourConn.addIceCandidate(new RTCIceCandidate(candidate))
+        .then(() => console.log("ICE Candidate added successfully"))
+        .catch(error => console.error("Error adding ICE Candidate:", error));
 };
+
  
 //hang up
 hangUpBtn.addEventListener("click", function () { 
