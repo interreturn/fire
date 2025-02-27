@@ -245,13 +245,14 @@ function handleAnswer(answer) {
       answer = JSON.parse(answer); // Parse JSON String to Object
     }
     console.log("Answer received:", answer);
-    if (answer.sdp) {
-      yourConn.setRemoteDescription(new RTCSessionDescription(answer))
-        .then(() => console.log("Remote description set successfully"))
-        .catch(error => console.error("Error setting remote description:", error));
-    } else {
-      console.error("SDP is missing in answer.");
-    }
+   let sdp = answer.data?.sdp; // Access nested SDP
+if (sdp) {
+  yourConn.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: sdp }))
+    .then(() => console.log("Remote description set successfully"))
+    .catch(error => console.error("Error setting remote description:", error));
+} else {
+  console.error("SDP is missing in answer.");
+}
   } catch (e) {
     console.error("Error parsing answer:", e);
   }
