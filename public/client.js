@@ -232,11 +232,35 @@ function handleOffer(offerString, name) {
 
 
 // Handle answer
+// function handleAnswer(answer) {
+//   console.log("Answer received:", answer);
+//   yourConn.setRemoteDescription(new RTCSessionDescription(answer))
+//     .catch(error => console.error("Error setting remote description:", error));
+// }
+
+
 function handleAnswer(answer) {
-  console.log("Answer received:", answer);
-  yourConn.setRemoteDescription(new RTCSessionDescription(answer))
-    .catch(error => console.error("Error setting remote description:", error));
+  try {
+    if (typeof answer === "string") {
+      answer = JSON.parse(answer); // Parse JSON String to Object
+    }
+    console.log("Answer received:", answer);
+    if (answer.sdp) {
+      yourConn.setRemoteDescription(new RTCSessionDescription(answer))
+        .then(() => console.log("Remote description set successfully"))
+        .catch(error => console.error("Error setting remote description:", error));
+    } else {
+      console.error("SDP is missing in answer.");
+    }
+  } catch (e) {
+    console.error("Error parsing answer:", e);
+  }
 }
+
+
+
+
+
 
 // Handle ICE candidate
 // function handleCandidate(candidate) {
