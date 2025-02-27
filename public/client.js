@@ -171,97 +171,34 @@ callBtn.addEventListener("click", function () {
 });
 
 // Handle offer
-// function handleOffer(offer, name) {
-//   connectedUser = name;
-//   yourConn.setRemoteDescription(new RTCSessionDescription(offer))
-//     .then(() => {
-//       console.log("Remote description set");
-//       return yourConn.createAnswer();
-//     })
-//     .then(answer => {
-//       return yourConn.setLocalDescription(answer);
-//     })
-//     .then(() => {
-//       console.log("Answer created:", yourConn.localDescription);
-//       send({
-//         type: "answer",
-//         answer: yourConn.localDescription
-//       });
-//     })
-//     .catch(error => {
-//       console.error("Error when handling an offer:", error);
-//     });
-// }
-
-
-function handleOffer(offerString, name) {
-  try {
-    const offer = typeof offerString === "string" ? JSON.parse(offerString) : offerString;
-    
-    if (!offer.sdp || !offer.type) {
-      throw new Error("Invalid SDP offer format");
-    }
-
-    connectedUser = name;
-    
-    yourConn.setRemoteDescription(new RTCSessionDescription(offer))
-      .then(() => {
-        console.log("Remote description set");
-        return yourConn.createAnswer();
-      })
-      .then(answer => {
-        return yourConn.setLocalDescription(answer);
-      })
-      .then(() => {
-        console.log("Answer created:", yourConn.localDescription);
-        send({
-          type: "answer",
-          answer: yourConn.localDescription
-        });
-      })
-      .catch(error => {
-        console.error("Error when handling an offer:", error);
+function handleOffer(offer, name) {
+  connectedUser = name;
+  yourConn.setRemoteDescription(new RTCSessionDescription(offer))
+    .then(() => {
+      console.log("Remote description set");
+      return yourConn.createAnswer();
+    })
+    .then(answer => {
+      return yourConn.setLocalDescription(answer);
+    })
+    .then(() => {
+      console.log("Answer created:", yourConn.localDescription);
+      send({
+        type: "answer",
+        answer: yourConn.localDescription
       });
-  } catch (error) {
-    console.error("Error parsing offer:", error);
-  }
+    })
+    .catch(error => {
+      console.error("Error when handling an offer:", error);
+    });
 }
-
-
-
-
 
 // Handle answer
-// function handleAnswer(answer) {
-//   console.log("Answer received:", answer);
-//   yourConn.setRemoteDescription(new RTCSessionDescription(answer))
-//     .catch(error => console.error("Error setting remote description:", error));
-// }
-
-
 function handleAnswer(answer) {
-  try {
-    if (typeof answer === "string") {
-      answer = JSON.parse(answer); // Parse JSON String to Object
-    }
-    console.log("Answer received:", answer);
-   let sdp = answer.data?.sdp; // Access nested SDP
-if (sdp) {
-  yourConn.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: sdp }))
-    .then(() => console.log("Remote description set successfully"))
+  console.log("Answer received:", answer);
+  yourConn.setRemoteDescription(new RTCSessionDescription(answer))
     .catch(error => console.error("Error setting remote description:", error));
-} else {
-  console.error("SDP is missing in answer.");
 }
-  } catch (e) {
-    console.error("Error parsing answer:", e);
-  }
-}
-
-
-
-
-
 
 // Handle ICE candidate
 // function handleCandidate(candidate) {
